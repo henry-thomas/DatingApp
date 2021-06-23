@@ -1,3 +1,4 @@
+import { TestErrorsComponent } from './errors/test-errors/test-errors.component';
 import { AuthGuard } from './_guards/auth.guard';
 import { ListsComponent } from './lists/lists.component';
 import { MemberListComponent } from './members/member-list/member-list.component';
@@ -22,6 +23,7 @@ const routes: Routes = [
     ]
   },
 
+  { path: 'errors', component: TestErrorsComponent },
   { path: '**', component: HomeComponent, pathMatch: 'full' },
 
 ];
