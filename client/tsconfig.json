@@ -10,7 +10,7 @@
     "allowJs": true,
   },
   "angularCompilerOptions": {
-    "strictTemplates": true,
+    "strictTemplates": false,
   },
   "files": [],
   "references": [

@@ -17,6 +17,7 @@ export class AuthGuard implements CanActivate {
           return true;
         }
         this.toastr.error('You shall not pass!');
+        return false;
       })
     );
   }
