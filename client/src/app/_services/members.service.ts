@@ -1,7 +1,9 @@
+import { User } from 'src/app/_models/user';
+import { AccountService } from './account.service';
 import { UserParams } from './../_models/userParams';
 import { PaginatedResults } from './../_models/pagination';
 import { Member } from './../_models/member';
-import { map } from 'rxjs/operators';
+import { map, take } from 'rxjs/operators';
 import { Observable, of } from 'rxjs';
 import { HttpClient, HttpHeaders, HttpParams } from '@angular/common/http';
 import { environment } from '../../environments/environment';
@@ -13,22 +15,49 @@ import { Injectable } from '@angular/core';
 export class MembersService {
   baseUrl = environment.apiUrl;
   members: Member[] = [];
+  memberCache = new Map();
+  user: User;
+  userParams: UserParams;
 
+  constructor(private http: HttpClient, private accountService: AccountService) {
+    this.accountService.currentUser$.pipe(take(1)).subscribe(user => {
+      this.user = user;
+      this.userParams = new UserParams(user);
+    })
+  }
 
-  constructor(private http: HttpClient) {
+  getUserParams() {
+    return this.userParams;
+  }
 
+  setUserParams(params: UserParams) {
+    this.userParams = params;
+  }
+
+  resetUserParams(){
+    this.userParams = new UserParams(this.user);
+    return this.userParams;
   }
 
   getMembers(userParams: UserParams) {
+    let response = this.memberCache.get(Object.values(userParams).join('-'));
+    if (response) {
+      return of(response);
+    }
+
     let params = this.getPaginationHeaders(userParams.pageNumber, userParams.pageSize);
 
     params = params.append('minAge', userParams.minAge.toString());
     params = params.append('maxAge', userParams.maxAge.toString());
     params = params.append('gender', userParams.gender);
-    console.log(params);
+    params = params.append('orderBy', userParams.orderBy);
 
 
-    return this.getPaginatedResult<Member[]>(this.baseUrl + 'users', params);
+    return this.getPaginatedResult<Member[]>(this.baseUrl + 'users', params)
+      .pipe(map(response => {
+        this.memberCache.set(Object.values(userParams).join('-'), response)
+        return response;
+      }));
   }
 
   private getPaginatedResult<T>(url, params) {
@@ -53,10 +82,18 @@ export class MembersService {
   }
 
   getMember(username: string) {
-    const member = this.members.find(x => x.username === username);
-    if (member !== undefined) {
+    const member = [...this.memberCache.values()]
+      .reduce((arr, elem) => {
+        arr.concat(elem.result);
+      }, [])
+      .find((member: Member) => {
+        member.username === username;
+      });
+
+    if (member) {
       return of(member);
     }
+
     return this.http.get<Member>(this.baseUrl + 'users/' + username);
   }
 
